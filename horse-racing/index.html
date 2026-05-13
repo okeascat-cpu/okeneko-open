@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>競馬予算管理</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :root {
+      --green-dark: #1a4a1a;
+      --green-mid: #2d7a2d;
+      --green-light: #3d9e3d;
+      --green-pale: #e8f5e8;
+      --gold: #d4a017;
+      --gold-light: #f0c040;
+      --gold-pale: #fdf6e3;
+      --text-dark: #1a1a1a;
+      --text-mid: #444;
+      --text-light: #777;
+      --white: #ffffff;
+      --border: #c8e0c8;
+      --shadow: rgba(0,0,0,0.12);
+      --plus: #2e7d32;
+      --minus: #c62828;
+      --minus-bg: #ffebee;
+      --plus-bg: #e8f5e8;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+      background: var(--green-dark);
+      color: var(--text-dark);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #app {
+      width: 100%;
+      max-width: 430px;
+      min-height: 100vh;
+      background: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      background: linear-gradient(135deg, var(--green-dark) 0%, var(--green-mid) 100%);
+      color: var(--white);
+      padding: 16px 20px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+
+    .header-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-title .icon { font-size: 22px; }
+
+    .header-date {
+      font-size: 12px;
+      color: rgba(255,255,255,0.75);
+      text-align: right;
+    }
+
+    /* ===== NAV ===== */
+    .nav {
+      background: var(--white);
+      border-top: 1px solid var(--border);
+      display: flex;
+      position: sticky;
+      bottom: 0;
+      z-index: 100;
+      box-shadow: 0 -2px 8px var(--shadow);
+    }
+
+    .nav-btn {
+      flex: 1;
+      padding: 10px 4px 8px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      color: var(--text-light);
+      font-size: 10px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-btn .nav-icon { font-size: 22px; line-height: 1; }
+    .nav-btn.active { color: var(--green-mid); }
+
+    /* ===== MAIN CONTENT ===== */
+    .screen {
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 8px;
+    }
+
+    .screen.hidden { display: none; }
+
+    /* ===== SUMMARY CARD ===== */
+    .summary-card {
+      margin: 14px 14px 0;
+      background: linear-gradient(135deg, var(--green-dark) 0%, var(--green-mid) 60%, var(--green-light) 100%);
+      border-radius: 16px;
+      padding: 20px;
+      color: var(--white);
+      box-shadow: 0 4px 16px rgba(26,74,26,0.35);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .summary-card::before {
+      content: '🏇';
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 64px;
+      opacity: 0.12;
+    }
+
+    .summary-label {
+      font-size: 11px;
+      color: rgba(255,255,255,0.7);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .summary-balance {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 14px;
+      line-height: 1;
+    }
+
+    .summary-balance.positive { color: var(--gold-light); }
+    .summary-balance.negative { color: #ff8a80; }
+    .summary-balance.zero { color: rgba(255,255,255,0.9); }
+
+    .summary-row { display: flex; gap: 16px; }
+
+    .summary-item {
+      flex: 1;
+      background: rgba(255,255,255,0.12);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+
+    .summary-item-label {
+      font-size: 10px;
+      color: rgba(255,255,255,0.65);
+      margin-bottom: 2px;
+    }
+
+    .summary-item-value {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--white);
+    }
+
+    /* ===== SECTION ===== */
+    .section { margin: 14px 14px 0; }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--green-dark);
+      letter-spacing: 0.3px;
+    }
+
+    .section-count {
+      font-size: 11px;
+      color: var(--text-light);
+      background: var(--green-pale);
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    /* ===== RACE CARD ===== */
+    .race-card {
+      background: var(--white);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 4px var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-left: 4px solid transparent;
+      position: relative;
+    }
+
+    .race-card.positive { border-left-color: var(--plus); }
+    .race-card.negative { border-left-color: var(--minus); }
+    .race-card.zero { border-left-color: #bbb; }
+
+    .race-num {
+      width: 28px;
+      height: 28px;
+      background: var(--green-pale);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--green-dark);
+      flex-shrink: 0;
+    }
+
+    .race-info { flex: 1; min-width: 0; }
+
+    .race-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-dark);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+
+    .race-meta { font-size: 11px; color: var(--text-light); }
+
+    .race-balance { text-align: right; flex-shrink: 0; }
+
+    .race-balance-num {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .race-balance-num.positive { color: var(--plus); }
+    .race-balance-num.negative { color: var(--minus); }
+    .race-balance-num.zero { color: var(--text-light); }
+
+    .race-balance-label { font-size: 10px; color: var(--text-light); }
+
+    .delete-btn {
+      position: absolute;
+      right: 10px;
+      top: 8px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      color: #ccc;
+      padding: 3px 5px;
+      border-radius: 4px;
+      line-height: 1;
+    }
+
+    .delete-btn:hover { color: var(--minus); background: var(--minus-bg); }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state {
+      text-align: center;
+      padding: 32px 20px;
+      color: var(--text-light);
+    }
+
+    .empty-icon { font-size: 48px; margin-bottom: 10px; opacity: 0.5; }
+    .empty-text { font-size: 14px; line-height: 1.6; }
+
+    /* ===== FAB ===== */
+    .fab {
+      position: fixed;
+      bottom: 72px;
+      right: calc(50% - 215px + 14px);
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+      border: none;
+      border-radius: 50%;
+      box-shadow: 0 4px 14px rgba(212,160,23,0.5);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 300;
+      line-height: 1;
+      z-index: 99;
+      color: var(--green-dark);
+    }
+
+    .fab:active { transform: scale(0.92); }
+
+    @media (max-width: 430px) { .fab { right: 14px; } }
+
+    /* ===== FORM ===== */
+    .form-container { padding: 16px 14px; }
+
+    .form-header-card {
+      margin: 14px 14px 0;
+      background: var(--gold-pale);
+      border: 1.5px solid #e8d080;
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .form-header-icon { font-size: 28px; }
+
+    .form-header-text {
+      font-size: 13px;
+      color: var(--text-mid);
+      line-height: 1.4;
+    }
+
+    .form-header-text strong { color: var(--green-dark); }
+
+    .form-group { margin-bottom: 16px; }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--green-dark);
+      margin-bottom: 6px;
+      letter-spacing: 0.3px;
+    }
+
+    .form-label span { color: var(--minus); margin-left: 2px; }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 16px;
+      color: var(--text-dark);
+      background: var(--white);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -webkit-appearance: none;
+    }
+
+    .form-input:focus {
+      border-color: var(--green-mid);
+      box-shadow: 0 0 0 3px rgba(45,122,45,0.12);
+    }
+
+    .form-input::placeholder { color: #bbb; }
+
+    .form-hint { font-size: 11px; color: var(--text-light); margin-top: 4px; }
+
+    .calc-preview {
+      background: var(--green-pale);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .calc-preview-label { font-size: 13px; color: var(--text-mid); }
+
+    .calc-preview-value { font-size: 20px; font-weight: 800; }
+    .calc-preview-value.positive { color: var(--plus); }
+    .calc-preview-value.negative { color: var(--minus); }
+    .calc-preview-value.zero { color: var(--text-light); }
+
+    .btn-save {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, var(--green-dark) 0%, var(--green-mid) 100%);
+      color: var(--white);
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 20px;
+      box-shadow: 0 4px 12px rgba(26,74,26,0.3);
+      letter-spacing: 0.5px;
+    }
+
+    .btn-save:active { transform: scale(0.97); }
+    .btn-save:disabled { background: #bbb; box-shadow: none; cursor: not-allowed; }
+
+    .btn-cancel {
+      width: 100%;
+      padding: 13px;
+      background: var(--white);
+      color: var(--text-mid);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    /* ===== HISTORY ===== */
+    .history-container { padding: 14px; }
+
+    .history-day-card {
+      background: var(--white);
+      border-radius: 14px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px var(--shadow);
+    }
+
+    .history-day-header {
+      padding: 12px 14px;
+      background: linear-gradient(135deg, var(--green-dark) 0%, var(--green-mid) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .history-day-date {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .race-count-badge {
+      background: rgba(255,255,255,0.2);
+      color: var(--white);
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+
+    .history-day-right { display: flex; align-items: center; gap: 10px; }
+
+    .history-day-balance { font-size: 16px; font-weight: 800; }
+    .history-day-balance.positive { color: var(--gold-light); }
+    .history-day-balance.negative { color: #ff8a80; }
+    .history-day-balance.zero { color: rgba(255,255,255,0.85); }
+
+    .chevron {
+      color: rgba(255,255,255,0.7);
+      font-size: 11px;
+      transition: transform 0.3s;
+    }
+
+    .chevron.open { transform: rotate(180deg); }
+
+    .history-day-stats {
+      display: flex;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--gold-pale);
+    }
+
+    .history-stat { flex: 1; text-align: center; }
+    .history-stat + .history-stat { border-left: 1px solid var(--border); }
+    .history-stat-label { font-size: 10px; color: var(--text-light); margin-bottom: 2px; }
+    .history-stat-value { font-size: 13px; font-weight: 700; color: var(--text-dark); }
+
+    .history-races { overflow: hidden; max-height: 0; transition: max-height 0.3s ease; }
+    .history-races.open { max-height: 2000px; }
+
+    .history-race-row {
+      display: flex;
+      align-items: center;
+      padding: 10px 14px;
+      border-top: 1px solid #f0f0f0;
+      gap: 10px;
+    }
+
+    .history-race-name {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text-dark);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .history-race-amounts { text-align: right; flex-shrink: 0; }
+    .history-race-balance { font-size: 13px; font-weight: 700; }
+    .history-race-balance.positive { color: var(--plus); }
+    .history-race-balance.negative { color: var(--minus); }
+    .history-race-balance.zero { color: var(--text-light); }
+    .history-race-detail { font-size: 10px; color: var(--text-light); }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--green-dark);
+      color: var(--white);
+      padding: 10px 20px;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+      opacity: 0;
+      transition: opacity 0.25s, transform 0.25s;
+      z-index: 200;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ===== DELETE DIALOG ===== */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 150;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+
+    .overlay.show { opacity: 1; pointer-events: all; }
+
+    .dialog {
+      background: var(--white);
+      border-radius: 16px;
+      padding: 24px 20px 16px;
+      width: 100%;
+      max-width: 320px;
+      transform: scale(0.9);
+      transition: transform 0.2s;
+    }
+
+    .overlay.show .dialog { transform: scale(1); }
+
+    .dialog-title { font-size: 16px; font-weight: 700; color: var(--text-dark); margin-bottom: 8px; }
+    .dialog-msg { font-size: 14px; color: var(--text-mid); margin-bottom: 20px; line-height: 1.5; }
+    .dialog-buttons { display: flex; gap: 10px; }
+
+    .dialog-btn {
+      flex: 1;
+      padding: 11px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .dialog-btn-cancel { background: #f0f0f0; color: var(--text-mid); }
+    .dialog-btn-delete { background: var(--minus); color: var(--white); }
+
+    /* ===== GOLD ACCENT LINE ===== */
+    .gold-line {
+      height: 3px;
+      background: linear-gradient(90deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold) 100%);
+    }
+
+    /* ===== BUDGET CARD ===== */
+    .budget-card {
+      margin: 12px 14px 0;
+      background: var(--white);
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: 0 1px 4px var(--shadow);
+      display: flex;
+      gap: 12px;
+    }
+
+    .budget-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .budget-item + .budget-item {
+      border-left: 1px solid var(--border);
+      padding-left: 12px;
+    }
+
+    .budget-item-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--green-dark);
+      letter-spacing: 0.3px;
+    }
+
+    .budget-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--green-pale);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+    }
+
+    .budget-yen {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--green-dark);
+    }
+
+    .budget-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-dark);
+      outline: none;
+      width: 0;
+      min-width: 0;
+      -webkit-appearance: none;
+    }
+
+    .budget-input::placeholder { color: #bbb; font-weight: 400; }
+
+    .winnings-value {
+      font-size: 22px;
+      font-weight: 800;
+      padding: 4px 0;
+    }
+
+    .winnings-value.positive { color: var(--plus); }
+    .winnings-value.negative { color: var(--minus); }
+    .winnings-value.zero { color: var(--text-light); }
+
+    .screen::-webkit-scrollbar { width: 0; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="gold-line"></div>
+  <header class="header">
+    <div class="header-title">
+      <span class="icon">🏇</span>競馬予算管理
+    </div>
+    <div class="header-date" id="headerDate"></div>
+  </header>
+
+  <!-- HOME -->
+  <div class="screen" id="screenHome">
+    <div class="summary-card">
+      <div class="summary-label">TODAY'S BALANCE</div>
+      <div class="summary-balance zero" id="todayBalance">¥0</div>
+      <div class="summary-row">
+        <div class="summary-item">
+          <div class="summary-item-label">合計賭け金</div>
+          <div class="summary-item-value" id="todayBet">¥0</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-item-label">合計払戻金</div>
+          <div class="summary-item-value" id="todayPayout">¥0</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-item-label">レース数</div>
+          <div class="summary-item-value" id="todayCount">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="budget-card">
+      <div class="budget-item">
+        <div class="budget-item-label">今日の予算</div>
+        <div class="budget-input-wrap">
+          <span class="budget-yen">¥</span>
+          <input class="budget-input" type="number" id="budgetInput" placeholder="0" min="0" inputmode="numeric">
+        </div>
+      </div>
+      <div class="budget-item">
+        <div class="budget-item-label">今日の勝った金額</div>
+        <div class="winnings-value zero" id="winningsValue">¥0</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">本日のレース</div>
+        <div class="section-count" id="todayCountBadge">0件</div>
+      </div>
+      <div id="todayList"></div>
+    </div>
+  </div>
+
+  <!-- FORM -->
+  <div class="screen hidden" id="screenForm">
+    <div class="form-header-card">
+      <div class="form-header-icon">📝</div>
+      <div class="form-header-text">
+        <strong>レース結果を記録</strong><br>
+        賭け金と払戻金を入力してください
+      </div>
+    </div>
+    <div class="form-container">
+      <div class="form-group">
+        <label class="form-label" for="inputName">レース名<span>*</span></label>
+        <input class="form-input" type="text" id="inputName" placeholder="例：東京11R 日本ダービー" maxlength="50">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="inputBet">賭け金（円）<span>*</span></label>
+        <input class="form-input" type="number" id="inputBet" placeholder="例：1000" min="0" inputmode="numeric">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="inputPayout">払戻金（円）</label>
+        <input class="form-input" type="number" id="inputPayout" placeholder="例：2500（外れの場合は0）" min="0" inputmode="numeric">
+        <div class="form-hint">外れた場合は 0 を入力してください</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">収支プレビュー</label>
+        <div class="calc-preview">
+          <span class="calc-preview-label">払戻 − 賭け金</span>
+          <span class="calc-preview-value zero" id="calcPreview">¥—</span>
+        </div>
+      </div>
+      <button class="btn-save" id="btnSave" disabled>保存する</button>
+      <button class="btn-cancel" id="btnCancel">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="screen hidden" id="screenHistory">
+    <div class="history-container" id="historyContainer"></div>
+  </div>
+
+  <nav class="nav">
+    <button class="nav-btn active" id="navHome" onclick="navigate('home')">
+      <span class="nav-icon">🏠</span>ホーム
+    </button>
+    <button class="nav-btn" id="navHistory" onclick="navigate('history')">
+      <span class="nav-icon">📊</span>履歴
+    </button>
+  </nav>
+</div>
+
+<button class="fab" id="fab" onclick="navigate('form')">＋</button>
+
+<div class="overlay" id="deleteOverlay">
+  <div class="dialog">
+    <div class="dialog-title">削除の確認</div>
+    <div class="dialog-msg" id="deleteMsg"></div>
+    <div class="dialog-buttons">
+      <button class="dialog-btn dialog-btn-cancel" onclick="closeDeleteDialog()">キャンセル</button>
+      <button class="dialog-btn dialog-btn-delete" onclick="confirmDelete()">削除する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'horse_racing_v1';
+const BUDGET_KEY  = 'horse_racing_budget';
+
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function loadBudgets() {
+  try { return JSON.parse(localStorage.getItem(BUDGET_KEY)) || {}; }
+  catch { return {}; }
+}
+
+function saveBudget(date, amount) {
+  const budgets = loadBudgets();
+  budgets[date] = amount;
+  localStorage.setItem(BUDGET_KEY, JSON.stringify(budgets));
+}
+
+function getTodayBudget() {
+  return loadBudgets()[todayStr()] || '';
+}
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function pad(n) { return String(n).padStart(2, '0'); }
+
+function formatDate(s) {
+  const [y, m, d] = s.split('-');
+  const dow = ['日','月','火','水','木','金','土'][new Date(+y, +m-1, +d).getDay()];
+  return `${y}年${+m}月${+d}日（${dow}）`;
+}
+
+function yen(n) { return '¥' + Math.abs(n).toLocaleString(); }
+
+function signedYen(n) {
+  if (n > 0) return '+¥' + n.toLocaleString();
+  if (n < 0) return '−¥' + Math.abs(n).toLocaleString();
+  return '¥0';
+}
+
+function winningsYen(n) {
+  if (n > 0) return '+¥' + n.toLocaleString();
+  if (n < 0) return '（−¥' + Math.abs(n).toLocaleString() + '）';
+  return '¥0';
+}
+
+function cls(n) {
+  return n > 0 ? 'positive' : n < 0 ? 'negative' : 'zero';
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ===== NAVIGATION =====
+let pendingDeleteId = null;
+
+function navigate(screen) {
+  ['Home','Form','History'].forEach(s => {
+    document.getElementById('screen'+s).classList.toggle('hidden', s.toLowerCase() !== screen);
+  });
+  document.getElementById('navHome').classList.toggle('active', screen === 'home');
+  document.getElementById('navHistory').classList.toggle('active', screen === 'history');
+  document.getElementById('fab').style.display = screen === 'form' ? 'none' : 'flex';
+
+  if (screen === 'home') renderHome();
+  else if (screen === 'history') renderHistory();
+  else resetForm();
+}
+
+// ===== HOME =====
+function renderHome() {
+  const data = loadData();
+  const today = todayStr();
+  const recs = data.filter(r => r.date === today);
+  const totalBet = recs.reduce((s, r) => s + r.bet, 0);
+  const totalPayout = recs.reduce((s, r) => s + r.payout, 0);
+  const bal = totalPayout - totalBet;
+
+  const balEl = document.getElementById('todayBalance');
+  balEl.textContent = signedYen(bal);
+  balEl.className = 'summary-balance ' + cls(bal);
+  document.getElementById('todayBet').textContent = yen(totalBet);
+  document.getElementById('todayPayout').textContent = yen(totalPayout);
+  document.getElementById('todayCount').textContent = recs.length;
+  document.getElementById('todayCountBadge').textContent = recs.length + '件';
+
+  const wEl = document.getElementById('winningsValue');
+  wEl.textContent = winningsYen(bal);
+  wEl.className = 'winnings-value ' + cls(bal);
+
+  const budgetInput = document.getElementById('budgetInput');
+  const saved = getTodayBudget();
+  if (budgetInput.value === '' || document.activeElement !== budgetInput) {
+    budgetInput.value = saved !== '' ? saved : '';
+  }
+
+  const list = document.getElementById('todayList');
+  if (!recs.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🏁</div><div class="empty-text">まだ記録がありません<br>「＋」ボタンで記録を追加しましょう</div></div>`;
+    return;
+  }
+  list.innerHTML = recs.map((r, i) => {
+    const b = r.payout - r.bet;
+    return `<div class="race-card ${cls(b)}">
+      <div class="race-num">${i+1}</div>
+      <div class="race-info">
+        <div class="race-name">${esc(r.name)}</div>
+        <div class="race-meta">賭 ${yen(r.bet)} → 払 ${yen(r.payout)}</div>
+      </div>
+      <div class="race-balance">
+        <div class="race-balance-num ${cls(b)}">${signedYen(b)}</div>
+        <div class="race-balance-label">収支</div>
+      </div>
+      <button class="delete-btn" onclick="openDeleteDialog('${r.id}','${esc(r.name)}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ===== FORM =====
+function resetForm() {
+  document.getElementById('inputName').value = '';
+  document.getElementById('inputBet').value = '';
+  document.getElementById('inputPayout').value = '';
+  updatePreview();
+  setTimeout(() => document.getElementById('inputName').focus(), 80);
+}
+
+function updatePreview() {
+  const name = document.getElementById('inputName').value.trim();
+  const betVal = document.getElementById('inputBet').value;
+  const bet = parseFloat(betVal) || 0;
+  const payout = parseFloat(document.getElementById('inputPayout').value) || 0;
+  const preview = document.getElementById('calcPreview');
+  const saveBtn = document.getElementById('btnSave');
+
+  if (name && betVal !== '') {
+    const b = payout - bet;
+    preview.textContent = signedYen(b);
+    preview.className = 'calc-preview-value ' + cls(b);
+    saveBtn.disabled = false;
+  } else {
+    preview.textContent = '¥—';
+    preview.className = 'calc-preview-value zero';
+    saveBtn.disabled = true;
+  }
+}
+
+document.getElementById('inputName').addEventListener('input', updatePreview);
+document.getElementById('inputBet').addEventListener('input', updatePreview);
+document.getElementById('inputPayout').addEventListener('input', updatePreview);
+
+document.getElementById('btnSave').addEventListener('click', () => {
+  const name = document.getElementById('inputName').value.trim();
+  const betVal = document.getElementById('inputBet').value;
+  if (!name) { showToast('レース名を入力してください'); return; }
+  if (betVal === '') { showToast('賭け金を入力してください'); return; }
+
+  const bet = parseFloat(betVal) || 0;
+  const payout = parseFloat(document.getElementById('inputPayout').value) || 0;
+  const data = loadData();
+  data.push({ id: Date.now().toString(), date: todayStr(), name, bet, payout });
+  saveData(data);
+  showToast('保存しました 🎉');
+  navigate('home');
+});
+
+document.getElementById('btnCancel').addEventListener('click', () => navigate('home'));
+
+// ===== HISTORY =====
+function renderHistory() {
+  const data = loadData();
+  const container = document.getElementById('historyContainer');
+
+  if (!data.length) {
+    container.innerHTML = `<div class="empty-state" style="padding:40px 20px"><div class="empty-icon">📋</div><div class="empty-text">まだ記録がありません</div></div>`;
+    return;
+  }
+
+  const byDate = {};
+  data.forEach(r => { (byDate[r.date] = byDate[r.date] || []).push(r); });
+  const dates = Object.keys(byDate).sort((a,b) => b.localeCompare(a));
+  const today = todayStr();
+
+  container.innerHTML = dates.map((date, i) => {
+    const recs = byDate[date];
+    const totalBet = recs.reduce((s,r) => s+r.bet, 0);
+    const totalPayout = recs.reduce((s,r) => s+r.payout, 0);
+    const bal = totalPayout - totalBet;
+    const label = date === today ? '今日' : formatDate(date);
+
+    const racesHtml = recs.map(r => {
+      const b = r.payout - r.bet;
+      return `<div class="history-race-row">
+        <div class="history-race-name">${esc(r.name)}</div>
+        <div class="history-race-amounts">
+          <div class="history-race-balance ${cls(b)}">${signedYen(b)}</div>
+          <div class="history-race-detail">賭 ${yen(r.bet)} / 払 ${yen(r.payout)}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="history-day-card">
+      <div class="history-day-header" onclick="toggleDay(${i})">
+        <div class="history-day-date">${label}<span class="race-count-badge">${recs.length}R</span></div>
+        <div class="history-day-right">
+          <div class="history-day-balance ${cls(bal)}">${signedYen(bal)}</div>
+          <div class="chevron" id="chev${i}">▼</div>
+        </div>
+      </div>
+      <div class="history-day-stats">
+        <div class="history-stat">
+          <div class="history-stat-label">賭け金計</div>
+          <div class="history-stat-value">${yen(totalBet)}</div>
+        </div>
+        <div class="history-stat">
+          <div class="history-stat-label">払戻金計</div>
+          <div class="history-stat-value">${yen(totalPayout)}</div>
+        </div>
+        <div class="history-stat">
+          <div class="history-stat-label">収支</div>
+          <div class="history-stat-value" style="color:${bal>=0?'var(--plus)':'var(--minus)'}">${signedYen(bal)}</div>
+        </div>
+      </div>
+      <div class="history-races" id="day${i}">${racesHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleDay(i) {
+  const el = document.getElementById('day'+i);
+  const chev = document.getElementById('chev'+i);
+  el.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+
+// ===== DELETE =====
+function openDeleteDialog(id, name) {
+  pendingDeleteId = id;
+  document.getElementById('deleteMsg').textContent = `「${name}」の記録を削除しますか？`;
+  document.getElementById('deleteOverlay').classList.add('show');
+}
+
+function closeDeleteDialog() {
+  pendingDeleteId = null;
+  document.getElementById('deleteOverlay').classList.remove('show');
+}
+
+function confirmDelete() {
+  if (!pendingDeleteId) return;
+  saveData(loadData().filter(r => r.id !== pendingDeleteId));
+  closeDeleteDialog();
+  showToast('削除しました');
+  renderHome();
+}
+
+document.getElementById('deleteOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('deleteOverlay')) closeDeleteDialog();
+});
+
+// ===== TOAST =====
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ===== INIT =====
+(function init() {
+  const d = new Date();
+  const dow = ['日','月','火','水','木','金','土'][d.getDay()];
+  document.getElementById('headerDate').textContent = `${d.getMonth()+1}月${d.getDate()}日（${dow}）`;
+
+  document.getElementById('budgetInput').addEventListener('input', function() {
+    const v = parseFloat(this.value);
+    saveBudget(todayStr(), isNaN(v) ? '' : v);
+  });
+
+  renderHome();
+})();
+</script>
+</body>
+</html>
