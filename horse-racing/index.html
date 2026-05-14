@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <title>競馬予算管理</title>
+  <title>競馬予算管理 🏇</title>
   <style>
     * {
       margin: 0;
@@ -269,10 +269,15 @@
 
     .race-balance-label { font-size: 10px; color: var(--text-light); }
 
-    .delete-btn {
+    .card-actions {
       position: absolute;
-      right: 10px;
+      right: 8px;
       top: 8px;
+      display: flex;
+      gap: 2px;
+    }
+
+    .edit-btn, .delete-btn {
       background: none;
       border: none;
       cursor: pointer;
@@ -283,6 +288,7 @@
       line-height: 1;
     }
 
+    .edit-btn:hover { color: var(--green-mid); background: var(--green-pale); }
     .delete-btn:hover { color: var(--minus); background: var(--minus-bg); }
 
     /* ===== EMPTY STATE ===== */
@@ -726,10 +732,10 @@
   <!-- FORM -->
   <div class="screen hidden" id="screenForm">
     <div class="form-header-card">
-      <div class="form-header-icon">📝</div>
+      <div class="form-header-icon" id="formHeaderIcon">📝</div>
       <div class="form-header-text">
-        <strong>レース結果を記録</strong><br>
-        賭け金と払戻金を入力してください
+        <strong id="formHeaderTitle">レース結果を記録</strong><br>
+        <span id="formHeaderSub">賭け金と払戻金を入力してください</span>
       </div>
     </div>
     <div class="form-container">
@@ -855,8 +861,9 @@ function esc(s) {
 
 // ===== NAVIGATION =====
 let pendingDeleteId = null;
+let editingId = null;
 
-function navigate(screen) {
+function navigate(screen, recordId = null) {
   ['Home','Form','History'].forEach(s => {
     document.getElementById('screen'+s).classList.toggle('hidden', s.toLowerCase() !== screen);
   });
@@ -866,7 +873,7 @@ function navigate(screen) {
 
   if (screen === 'home') renderHome();
   else if (screen === 'history') renderHistory();
-  else resetForm();
+  else resetForm(recordId);
 }
 
 // ===== HOME =====
@@ -913,16 +920,36 @@ function renderHome() {
         <div class="race-balance-num ${cls(b)}">${signedYen(b)}</div>
         <div class="race-balance-label">収支</div>
       </div>
-      <button class="delete-btn" onclick="openDeleteDialog('${r.id}','${esc(r.name)}')">✕</button>
+      <div class="card-actions">
+        <button class="edit-btn" onclick="navigate('form','${r.id}')">✏️</button>
+        <button class="delete-btn" onclick="openDeleteDialog('${r.id}','${esc(r.name)}')">✕</button>
+      </div>
     </div>`;
   }).join('');
 }
 
 // ===== FORM =====
-function resetForm() {
-  document.getElementById('inputName').value = '';
-  document.getElementById('inputBet').value = '';
-  document.getElementById('inputPayout').value = '';
+function resetForm(recordId = null) {
+  editingId = recordId;
+  const isEdit = !!recordId;
+
+  document.getElementById('formHeaderIcon').textContent = isEdit ? '✏️' : '📝';
+  document.getElementById('formHeaderTitle').textContent = isEdit ? 'レース結果を編集' : 'レース結果を記録';
+  document.getElementById('formHeaderSub').textContent = isEdit ? '内容を変更して保存してください' : '賭け金と払戻金を入力してください';
+  document.getElementById('btnSave').textContent = isEdit ? '更新する' : '保存する';
+
+  if (isEdit) {
+    const rec = loadData().find(r => r.id === recordId);
+    if (rec) {
+      document.getElementById('inputName').value = rec.name;
+      document.getElementById('inputBet').value = rec.bet;
+      document.getElementById('inputPayout').value = rec.payout;
+    }
+  } else {
+    document.getElementById('inputName').value = '';
+    document.getElementById('inputBet').value = '';
+    document.getElementById('inputPayout').value = '';
+  }
   updatePreview();
   setTimeout(() => document.getElementById('inputName').focus(), 80);
 }
@@ -960,9 +987,18 @@ document.getElementById('btnSave').addEventListener('click', () => {
   const bet = parseFloat(betVal) || 0;
   const payout = parseFloat(document.getElementById('inputPayout').value) || 0;
   const data = loadData();
-  data.push({ id: Date.now().toString(), date: todayStr(), name, bet, payout });
-  saveData(data);
-  showToast('保存しました 🎉');
+
+  if (editingId) {
+    const idx = data.findIndex(r => r.id === editingId);
+    if (idx !== -1) { data[idx] = { ...data[idx], name, bet, payout }; }
+    saveData(data);
+    showToast('更新しました ✅');
+  } else {
+    data.push({ id: Date.now().toString(), date: todayStr(), name, bet, payout });
+    saveData(data);
+    showToast('保存しました 🎉');
+  }
+  editingId = null;
   navigate('home');
 });
 
