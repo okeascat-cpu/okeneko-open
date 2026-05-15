@@ -270,22 +270,26 @@
     .race-balance-label { font-size: 10px; color: var(--text-light); }
 
     .card-actions {
-      position: absolute;
-      right: 8px;
-      top: 8px;
       display: flex;
       gap: 2px;
+      justify-content: flex-end;
+      margin-top: 4px;
     }
 
     .edit-btn, .delete-btn {
       background: none;
       border: none;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 14px;
       color: #ccc;
-      padding: 3px 5px;
+      padding: 4px 6px;
       border-radius: 4px;
       line-height: 1;
+      min-width: 28px;
+      min-height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .edit-btn:hover { color: var(--green-mid); background: var(--green-pale); }
@@ -919,10 +923,10 @@ function renderHome() {
       <div class="race-balance">
         <div class="race-balance-num ${cls(b)}">${signedYen(b)}</div>
         <div class="race-balance-label">収支</div>
-      </div>
-      <div class="card-actions">
-        <button class="edit-btn" onclick="navigate('form','${r.id}')">✏️</button>
-        <button class="delete-btn" onclick="openDeleteDialog('${r.id}','${esc(r.name)}')">✕</button>
+        <div class="card-actions">
+          <button class="edit-btn" onclick="navigate('form','${r.id}')">✏️</button>
+          <button class="delete-btn" onclick="openDeleteDialog('${r.id}','${esc(r.name)}')">✕</button>
+        </div>
       </div>
     </div>`;
   }).join('');
